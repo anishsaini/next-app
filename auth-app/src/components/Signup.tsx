@@ -1,12 +1,15 @@
 "use client";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const Signup: React.FC = () => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -15,6 +18,7 @@ const Signup: React.FC = () => {
       return;
     }
     setError("");
+    setLoading(true);
     try {
       const res = await fetch("/api/signup", {
         method: "POST",
@@ -24,12 +28,16 @@ const Signup: React.FC = () => {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Signup failed");
+        setLoading(false);
       } else {
-        // Success: redirect or show message
         console.log("Signup successful");
+        // Redirect to login or home page after successful signup
+        router.push("/login")
+        setLoading(false);
       }
     } catch (err) {
       setError("Something went wrong");
+      setLoading(false);
     }
   };
 
@@ -112,7 +120,7 @@ const Signup: React.FC = () => {
             type="submit"
             className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition"
           >
-            Sign Up
+            {loading ? "Signing up..." : error == "" ? "Sign Up" : "Retry"}
           </button>
         </form>
         <p className="mt-6 text-center text-sm text-gray-500">
