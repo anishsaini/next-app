@@ -1,6 +1,8 @@
+
 import type { NextApiRequest, NextApiResponse } from "next";
 import formidable from "formidable";
 import { promises as fs } from "fs";
+import path from "path";
 
 export const config = {
   api: {
@@ -9,26 +11,44 @@ export const config = {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  await fs.mkdir("./public/uploads", { recursive: true });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
-  const form = formidable({ multiples: false, uploadDir: "./public/uploads", keepExtensions: true });
 
-  form.parse(req, (err, fields, files) => {
+  const uploadDir = path.join(process.cwd(), "/public/uploads");
+  await fs.mkdir(uploadDir, { recursive: true });
+
+  const form = formidable({
+    uploadDir,
+    keepExtensions: true, 
+    multiples: true,
+  });
+
+  form.parse(req, async (err, fields, files) => {
     if (err) {
-      res.status(500).json({ error: "Upload failed" });
-      return;
+      return res.status(500).json({ error: "Upload failed" });
     }
-    const media = files.media;
-    const file = Array.isArray(media) ? media[0] : media;
-    const caption = Array.isArray(fields.caption)
-      ? fields.caption[0]
-      : fields.caption ?? "";
+
+    const file = Array.isArray(files.media) ? files.media[0] : files.media;
 
     if (!file) {
-      res.status(400).json({ error: "No file uploaded" });
-      return;
+      return res.status(400).json({ error: "No file uploaded" });
     }
 
-    res.status(200).json({ message: "Uploaded", filename: file.newFilename, caption });
+    const originalName = file.originalFilename || "uploaded_file";
+    const newPath = path.join(uploadDir, originalName);
+
+   
+    await fs.rename(file.filepath, newPath);
+
+
+    const fileUrl = `/uploads/${originalName}`;
+
+    return res.status(200).json({
+      message: "File uploaded successfully",
+      filename: originalName,
+      url: fileUrl,
+    });
   });
 }

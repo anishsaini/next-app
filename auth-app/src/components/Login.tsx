@@ -1,7 +1,6 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import Router from "next/router";
 
 const Login = () => {
   const router = useRouter();
@@ -14,64 +13,91 @@ const Login = () => {
     e.preventDefault();
     setError("");
     setLoading(true);
-    const res = await fetch("/api/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
 
-    const data = await res.json();
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-    if (!res.ok) {
-      setError(data.error || "Login failed");
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Login failed. Please check your credentials.");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Login successful");
       setLoading(false);
-      return;
-    }
 
-    console.log("Login successful");
-    setLoading(false);
-    router.push("/");
+      router.push("/");
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-6 rounded shadow-md w-96"
-      >
-        <h2 className="text-2xl font-semibold mb-4 text-center">Login</h2>
+    <div className="min-h-screen flex items-center justify-center bg-[#0f0f0f] px-4">
+      <div className="w-full max-w-sm bg-[#1a1a1a] rounded-2xl shadow-xl p-8 border border-[#2a2a2a]">
+        <h2 className="text-3xl font-semibold text-white text-center mb-6">
+          Welcome Back
+        </h2>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label htmlFor="email" className="block text-sm text-gray-400 mb-1">
+              Email address
+            </label>
+            <input
+              type="email"
+              id="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-4 py-2.5 rounded-lg bg-[#262626] text-white placeholder-gray-500 border border-[#333] focus:outline-none focus:ring-2 focus:ring-blue-600"
+            />
+          </div>
 
-        {error && <p className="text-red-500 mb-3">{error}</p>}
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-sm text-gray-400 mb-1"
+            >
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-4 py-2.5 rounded-lg bg-[#262626] text-white placeholder-gray-500 border border-[#333] focus:outline-none focus:ring-2 focus:ring-blue-600"
+            />
+          </div>
 
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="w-full p-2 mb-4 border border-gray-300 rounded"
-        />
+          {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="w-full p-2 mb-4 border border-gray-300 rounded"
-        />
-
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
-        >
-          {loading ? "Logging in..." : "Login"}
-        </button>
-
-        <a href="/signup">dont have account</a>
-      </form>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "Logging in..." : "Login"}
+          </button>
+        </form>
+        <p className="mt-6 text-center text-sm text-gray-500">
+          Don't have an account?{" "}
+          <a href="/signup" className="text-blue-500 hover:underline">
+            Sign up
+          </a>
+        </p>
+      </div>
     </div>
   );
 };
