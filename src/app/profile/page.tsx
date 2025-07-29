@@ -1,154 +1,89 @@
 "use client";
+import { useEffect, useState } from "react";
 
-import React, { useEffect, useState } from "react";
-
-interface User {
-  username: string;
-  email: string;
-  bio?: string;
-}
-
-const ProfileCard: React.FC = () => {
-  const [user, setUser] = useState<User | null>(null);
+const ProfilePage = () => {
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [popup, setPopup] = useState(false);
-  const [editUsername, setEditUsername] = useState("");
-  const [editBio, setEditBio] = useState("");
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  
-    
-  const handleOpenPopup = () => {
-    if (user) {
-      setEditUsername(user.username);
-      setEditBio(user.bio || "");
-    }
-    setPopup(true);
-  };
-
-  const handleClosePopup = () => {
-    setPopup(false);
-    setError(""); 
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    setError("");
-
-    try {
-      const res = await fetch("/api/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: editUsername,
-          bio: editBio,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to update profile");
-      }
-
-      const result = await res.json();
-      setUser(result.user); 
-      setPopup(false);      
-    } catch (err: any) {
-      setError(err.message || "Something went wrong.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const buttonStyles =
-    "px-6 py-2.5 bg-gray-700 hover:bg-gray-600 rounded-lg font-medium transition";
-
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchProfile = async () => {
       try {
-        const res = await fetch("/api/profile");
-        const data: User = await res.json();
-        setUser(data);
-      } catch (error) {
-        console.error("Error fetching user:", error);
+        const res = await fetch("/api/profile", {
+          credentials: 'include', 
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to fetch profile");
+        setProfile(data);
+      } catch (err: any) {
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchUser();
+    fetchProfile();
   }, []);
+
+  const updateProfile = async (updates: any) => {
+    try {
+      const res = await fetch("/api/profile", {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(updates),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update profile");
+      setProfile(data.user);
+      return data;
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/logout", {
+        method: 'POST',
+        credentials: 'include',
+      });
+     
+      window.location.href = '/login';
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
+
+  if (loading) return <div className="text-center text-white">Loading...</div>;
+  if (error) return <div className="text-center text-red-500">{error}</div>;
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-white px-4 py-10 flex items-center justify-center">
       <div className="max-w-2xl w-full bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] shadow-xl p-10 text-center">
-        <img
-          className="w-24 h-24 mx-auto rounded-full border-4 border-[#2a2a2a]"
-          src="/uploads/logo.png" 
-          alt="Profile"
-        />
-
-        <h2 className="mt-4 text-2xl font-bold text-white">{user?.username}</h2>
-        <p className="text-gray-400">{user?.email}</p>
-
-        <p className="mt-4 text-sm text-gray-400">
-          {user?.bio || "This is a sample bio. You can edit your profile to add more details."}
+        <h1 className="text-4xl md:text-5xl font-extrabold mb-4 bg-gradient-to-r from-blue-500 to-purple-600 text-transparent bg-clip-text">
+          Profile Page
+        </h1>
+        <p className="text-gray-400 text-lg md:text-xl mb-6">
+          User Profile Information
         </p>
-
-        <div className="mt-6 flex justify-center gap-4">
-          <button className={buttonStyles} onClick={handleOpenPopup}>
-            Edit Profile
+        <div className="text-left mt-6 space-y-4">
+          <div><span className="font-bold">Username:</span> {profile?.username}</div>
+          <div><span className="font-bold">Email:</span> {profile?.email}</div>
+          <div><span className="font-bold">Bio:</span> {profile?.bio}</div>
+        </div>
+        <div className="mt-8 space-x-4">
+          <button 
+            onClick={handleLogout}
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors"
+          >
+            Logout
           </button>
         </div>
       </div>
-
-      
-      {popup && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-          <div className="bg-[#1a1a1a] p-6 rounded-xl w-[90%] max-w-md text-left border border-[#2a2a2a]">
-            <h3 className="text-xl font-semibold mb-4 text-white">Edit Profile</h3>
-
-            <label className="block text-sm mb-1 text-gray-300">Username</label>
-            <input
-              type="text"
-              value={editUsername}
-              onChange={(e) => setEditUsername(e.target.value)}
-              className="w-full mb-4 px-4 py-2 rounded bg-[#2a2a2a] border border-gray-600 text-white"
-            />
-
-            <label className="block text-sm mb-1 text-gray-300">Bio</label>
-            <textarea
-              value={editBio}
-              onChange={(e) => setEditBio(e.target.value)}
-              className="w-full mb-4 px-4 py-2 rounded bg-[#2a2a2a] border border-gray-600 text-white resize-none"
-              rows={3}
-            />
-
-            {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
-
-            <div className="flex justify-end gap-2 mt-4">
-              <button
-                onClick={handleClosePopup}
-                className="px-5 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg transition disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Save"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
-};
-
-export default ProfileCard;
+}
+export default ProfilePage;

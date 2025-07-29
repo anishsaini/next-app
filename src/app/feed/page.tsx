@@ -1,10 +1,12 @@
 "use client";
 import React, { useState, useRef } from "react";
+import Card from "@/app/card/page";
 
 export default function FeedPage() {
   const [showModal, setShowModal] = useState(false);
   const [caption, setCaption] = useState("");
   const [file, setFile] = useState<File | null>(null);
+ 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -81,6 +83,7 @@ export default function FeedPage() {
           </div>
         )}
       </div>
+      <Card postId={"examplePostId"} userId={"exampleUserId"} />
     </div>
   );
 }
