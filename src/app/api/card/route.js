@@ -1,51 +1,28 @@
-import dbConnect from "../../../lib/dbConnect";
-import Post from "../../../models/Post";
+import { NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb";
+import User from "@/models/User";
 
-export default async function handler(req, res) {
-  await dbConnect();
-
-  if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method not allowed" });
-  }
-
-  const { postId, userId, action } = req.body;
-
-  if (!postId || !userId || !["like", "dislike"].includes(action)) {
-    return res.status(400).json({ message: "Invalid request" });
-  }
-
+export async function GET() {
   try {
-    const post = await Post.findById(postId);
-    if (!post) return res.status(404).json({ message: "Post not found" });
+    await connectToDatabase();
 
-    const hasLiked = post.likes.includes(userId);
-    const hasDisliked = post.dislikes.includes(userId);
+    const user = await User.findOne(); 
 
-    if (action === "like") {
-      if (hasLiked) {
-        post.likes.pull(userId);
-      } else {
-        post.likes.push(userId);
-        if (hasDisliked) post.dislikes.pull(userId); 
-      }
-    } else if (action === "dislike") {
-      if (hasDisliked) {
-        post.dislikes.pull(userId);
-      } else {
-        post.dislikes.push(userId);
-        if (hasLiked) post.likes.pull(userId); 
-      }
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    await post.save();
-    return res.status(200).json({
-      likes: post.likes.length,
-      dislikes: post.dislikes.length,
-      liked: post.likes.includes(userId),
-      disliked: post.dislikes.includes(userId),
+    return NextResponse.json({
+      username: user.username,
+      profilePic: user.profilePic,
+      bio: user.bio,
+      followers: user.followers,
+      posts: user.posts,
     });
   } catch (error) {
-    console.error("Error liking/disliking post:", error);
-    return res.status(500).json({ message: "Server error" });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

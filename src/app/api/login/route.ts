@@ -27,6 +27,14 @@ export async function POST(req: Request) {
       username: user.username
     });
 
+    // store token in db
+
+    user.token = token;
+    await user.save();
+
+    console.log("Token generated:", token);
+
+
     return createAuthResponse(
       { 
         message: "Login successful",

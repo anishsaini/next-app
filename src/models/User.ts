@@ -5,6 +5,8 @@ export interface IUser extends Document {
   email: string;
   password: string;
   bio?: string;
+  token?: string;
+  profilePic?: string
 }
 
 const UserSchema = new Schema<IUser>({
@@ -12,6 +14,8 @@ const UserSchema = new Schema<IUser>({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   bio: { type: String, default: "this is bio" },
+  token: { type: String, required: false, default: undefined },
+  profilePic: { type: String, default: null }
 }, { timestamps: true });
 
 const User: Model<IUser> =

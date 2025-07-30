@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import User from "@/models/User";
 import { NextRequest } from "next/server";
-import { authenticateUser, getTokenFromRequest } from "@/lib/auth";
+import { authenticateUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await User.findById(payload.id).select('-password');
+    const user = await User.findById(payload.id).select("-password");
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       username: user.username,
       email: user.email,
-      bio: user.bio || "this is bio"
+      bio: user.bio || "this is bio",
+      profilePic: user.profilePic || null,
     });
   } catch (error) {
     console.error("Profile fetch error:", error);
@@ -39,16 +40,16 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { username, bio } = body;
+    const { username, bio, profilePic } = body;
 
     const user = await User.findById(payload.id);
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Only update fields present in the request
     if (username !== undefined) user.username = username;
     if (bio !== undefined) user.bio = bio;
+    if (profilePic !== undefined) user.profilePic = profilePic;
 
     await user.save();
 
@@ -58,31 +59,11 @@ export async function PATCH(request: NextRequest) {
         username: user.username,
         email: user.email,
         bio: user.bio,
+        profilePic: user.profilePic,
       },
     });
   } catch (error) {
     console.error("Profile update error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
-}
-
-// Migration endpoint to add bio field to all users
-export async function POST(request: NextRequest) {
-  try {
-    await connectToDatabase();
-    
-    // Update all users that don't have a bio field
-    const result = await User.updateMany(
-      { bio: { $exists: false } },
-      { $set: { bio: "this is bio" } }
-    );
-    
-    return NextResponse.json({
-      message: `Updated ${result.modifiedCount} users with bio field`,
-      modifiedCount: result.modifiedCount
-    });
-  } catch (error) {
-    console.error('Migration error:', error);
-    return NextResponse.json({ error: 'Migration failed' }, { status: 500 });
   }
 }
