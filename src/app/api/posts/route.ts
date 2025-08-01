@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     const posts = await Post.find()
       .populate("userId", "username profilePic")
       .sort({ createdAt: -1 })
-      .limit(20);
+      
 
     return NextResponse.json({ posts });
   } catch (error) {
