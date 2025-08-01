@@ -2,7 +2,8 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IPost extends Document {
   userId: mongoose.Types.ObjectId;
-  imagePath: string;
+  mediaPath: string;
+  mediaType: 'image' | 'video';
   caption: string;
   likes: mongoose.Types.ObjectId[];
   comments: {
@@ -20,9 +21,14 @@ const PostSchema = new Schema<IPost>({
     ref: 'User', 
     required: true 
   },
-  imagePath: { 
+  mediaPath: { 
     type: String, 
     required: true 
+  },
+  mediaType: {
+    type: String,
+    enum: ['image', 'video'],
+    required: true
   },
   caption: { 
     type: String, 

@@ -32,6 +32,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Caption is required" }, { status: 400 });
     }
 
+    // Check file type and size
+    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const allowedVideoTypes = ['video/mp4', 'video/mov', 'video/avi', 'video/webm', 'video/quicktime'];
+    const allowedTypes = [...allowedImageTypes, ...allowedVideoTypes];
+    
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json({ 
+        error: "Invalid file type. Please upload an image (JPEG, PNG, GIF, WebP) or video (MP4, MOV, AVI, WebM)" 
+      }, { status: 400 });
+    }
+
+    // Determine media type
+    const isVideo = allowedVideoTypes.includes(file.type);
+    const mediaType = isVideo ? 'video' : 'image';
+
     // Generate unique filename
     const timestamp = Date.now();
     const originalName = file.name;
@@ -55,7 +70,8 @@ export async function POST(request: NextRequest) {
     // Create post in database
     const post = new Post({
       userId: dbUser._id,
-      imagePath: fileUrl,
+      mediaPath: fileUrl,
+      mediaType: mediaType,
       caption: caption.trim(),
       likes: [],
       comments: []
@@ -67,9 +83,11 @@ export async function POST(request: NextRequest) {
       message: "Post created successfully",
       filename: fileName,
       url: fileUrl,
+      mediaType: mediaType,
       post: {
         id: post._id,
-        imagePath: post.imagePath,
+        mediaPath: post.mediaPath,
+        mediaType: post.mediaType,
         caption: post.caption,
         createdAt: post.createdAt
       }

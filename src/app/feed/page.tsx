@@ -4,22 +4,11 @@ import { useRouter } from "next/navigation";
 import Post from "@/app/components/Post";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 
-
-const getTokenFromCookies = () => {
-  if (typeof document !== "undefined") {
-    const cookies = document.cookie.split(";");
-    const tokenCookie = cookies.find((cookie) =>
-      cookie.trim().startsWith("token=")
-    );
-    return tokenCookie ? tokenCookie.split("=")[1] : null;
-  }
-  return null;
-};
-
 export default function FeedPage() {
   const [showModal, setShowModal] = useState(false);
   const [caption, setCaption] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
@@ -29,10 +18,43 @@ export default function FeedPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Client-side token utility (mirrors auth.ts getTokenFromCookie for browser use)
+  const getClientToken = (): string | null => {
+    if (typeof document !== "undefined") {
+      const cookies = document.cookie.split(";");
+      const tokenCookie = cookies.find((cookie) =>
+        cookie.trim().startsWith("token=")
+      );
+      return tokenCookie ? tokenCookie.split("=")[1] : null;
+    }
+    return null;
+  };
+
   useEffect(() => {
     fetchPosts();
     checkAuth();
   }, []);
+
+  const handleFileSelect = (selectedFile: File | null) => {
+    setFile(selectedFile);
+    
+    if (selectedFile) {
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(selectedFile);
+      setFilePreview(previewUrl);
+    } else {
+      setFilePreview(null);
+    }
+  };
+
+  // Cleanup preview URL when component unmounts or file changes
+  useEffect(() => {
+    return () => {
+      if (filePreview) {
+        URL.revokeObjectURL(filePreview);
+      }
+    };
+  }, [filePreview]);
 
   const checkAuth = async () => {
     try {
@@ -80,9 +102,9 @@ export default function FeedPage() {
     e.preventDefault();
     if (!file) return;
 
-    console.log("Is authenticated state:", isAuthenticated);
-
-    if (!isAuthenticated) {
+    // Check authentication using the client token utility
+    const token = getClientToken();
+    if (!token || !isAuthenticated) {
       alert("Please login to create posts");
       router.push("/login");
       return;
@@ -107,6 +129,7 @@ export default function FeedPage() {
         setShowModal(false);
         setCaption("");
         setFile(null);
+        setFilePreview(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
         fetchPosts();
       } else {
@@ -181,7 +204,13 @@ export default function FeedPage() {
             <div className="bg-gradient-to-br from-[#1a1a1a] to-[#2a2a2a] p-8 rounded-3xl w-full max-w-lg relative border border-[#333] shadow-2xl">
               <button
                 className="absolute top-4 right-4 text-gray-400 hover:text-white text-3xl transition-colors duration-200"
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  setShowModal(false);
+                  setFile(null);
+                  setFilePreview(null);
+                  setCaption("");
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                }}
                 disabled={uploadLoading}
               >
                 &times;
@@ -197,7 +226,7 @@ export default function FeedPage() {
               <form onSubmit={handleUpload} className="space-y-6">
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Choose Image
+                    Choose Image or Video
                   </label>
                   <div
                     className="border-2 border-dashed border-gray-600 rounded-xl p-6 text-center hover:border-blue-500 transition-colors duration-200 cursor-pointer"
@@ -206,30 +235,46 @@ export default function FeedPage() {
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*"
-                      onChange={(e) => setFile(e.target.files?.[0] || null)}
+                      accept="image/*,video/*,.mp4,.mov,.avi,.webm"
+                      onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
                       className="hidden"
                       required
                       disabled={uploadLoading}
                     />
                     {file ? (
                       <div className="space-y-3">
-                        <svg
-                          className="w-12 h-12 mx-auto text-green-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
+                        {file.type.startsWith('video/') ? (
+                          <svg
+                            className="w-12 h-12 mx-auto text-green-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
+                          </svg>
+                        ) : (
+                          <svg
+                            className="w-12 h-12 mx-auto text-green-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                        )}
                         <div>
                           <p className="text-green-400 font-medium">
-                            File selected!
+                            {file.type.startsWith('video/') ? 'Video' : 'Image'} selected!
                           </p>
                           <p className="text-gray-400 text-sm">{file.name}</p>
                           <p className="text-gray-500 text-xs">
@@ -254,16 +299,41 @@ export default function FeedPage() {
                         </svg>
                         <div>
                           <p className="text-gray-300 font-medium">
-                            Click to upload image
+                            Click to upload image or video
                           </p>
                           <p className="text-gray-500 text-sm">
-                            PNG, JPG, GIF up to 10MB
+                            PNG, JPG, GIF, MP4, MOV, AVI, WEBM
                           </p>
                         </div>
                       </div>
                     )}
                   </div>
                 </div>
+
+                {/* File Preview */}
+                {filePreview && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Preview
+                    </label>
+                    <div className="relative rounded-xl overflow-hidden border border-[#333]">
+                      {file?.type.startsWith('video/') ? (
+                        <video
+                          src={filePreview}
+                          controls
+                          className="w-full max-h-64 object-cover"
+                          preload="metadata"
+                        />
+                      ) : (
+                        <img
+                          src={filePreview}
+                          alt="Preview"
+                          className="w-full max-h-64 object-cover"
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-300 mb-2">

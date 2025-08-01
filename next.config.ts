@@ -1,7 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  experimental: {
+    serverComponentsExternalPackages: ['mongoose']
+  },
+  api: {
+    bodyParser: {
+      sizeLimit: false
+    },
+    responseLimit: false
+  }
 };
 
 export default nextConfig;

@@ -15,11 +15,16 @@ export async function POST(request: NextRequest) {
     await connectToDatabase();
 
     const formData = await request.formData();
-    const imagePath = formData.get("imagePath") as string;
+    const mediaPath = formData.get("mediaPath") as string;
+    const mediaType = formData.get("mediaType") as string;
     const caption = formData.get("caption") as string;
 
-    if (!imagePath) {
-      return NextResponse.json({ error: "Image path is required" }, { status: 400 });
+    if (!mediaPath) {
+      return NextResponse.json({ error: "Media path is required" }, { status: 400 });
+    }
+
+    if (!mediaType || !['image', 'video'].includes(mediaType)) {
+      return NextResponse.json({ error: "Valid media type is required" }, { status: 400 });
     }
 
     if (!caption || caption.trim() === "") {
@@ -36,7 +41,8 @@ export async function POST(request: NextRequest) {
     // Create post in database
     const post = new Post({
       userId: dbUser._id,
-      imagePath: imagePath,
+      mediaPath: mediaPath,
+      mediaType: mediaType,
       caption: caption.trim(),
       likes: [],
       comments: []
@@ -48,7 +54,8 @@ export async function POST(request: NextRequest) {
       message: "Post created successfully",
       post: {
         id: post._id,
-        imagePath: post.imagePath,
+        mediaPath: post.mediaPath,
+        mediaType: post.mediaType,
         caption: post.caption,
         createdAt: post.createdAt
       }

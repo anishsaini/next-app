@@ -5,7 +5,8 @@ import Image from "next/image";
 interface PostProps {
   post: {
     _id: string;
-    imagePath: string;
+    mediaPath: string;
+    mediaType: 'image' | 'video';
     caption: string;
     createdAt: string;
     userId: {
@@ -73,17 +74,30 @@ export default function Post({ post }: PostProps) {
         </div>
       )}
 
-      {/* Post Image */}
-      <div className="relative w-full">
-        <Image
-          src={post.imagePath}
-          alt="Post image"
-          width={600}
-          height={600}
-          className="w-full object-cover"
-          priority={false}
-        />
-      </div>
+      {/* Post Media */}
+      {post.mediaPath && post.mediaPath.trim() !== "" && (
+        <div className="relative w-full">
+          {post.mediaType === 'video' ? (
+            <video
+              src={post.mediaPath}
+              controls
+              className="w-full object-cover"
+              preload="metadata"
+            >
+              Your browser does not support the video tag.
+            </video>
+          ) : (
+            <Image
+              src={post.mediaPath}
+              alt="Post image"
+              width={600}
+              height={600}
+              className="w-full object-cover"
+              priority={false}
+            />
+          )}
+        </div>
+      )}
 
       {/* Post Actions */}
       <div className="p-6">
